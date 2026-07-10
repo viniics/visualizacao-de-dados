@@ -39,6 +39,42 @@
       box-shadow: 0 12px 34px rgba(23, 32, 51, 0.08);
     }
 
+    .filters {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      color: #526174;
+      font-size: 13px;
+    }
+
+    input {
+      width: 110px;
+      padding: 7px 8px;
+      border: 1px solid #c8d3df;
+      border-radius: 6px;
+      font: inherit;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 6px;
+      background: #2f80ed;
+      color: #ffffff;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button.secondary {
+      background: #526174;
+    }
+
     #chart {
       width: 100%;
       height: 640px;
@@ -56,8 +92,21 @@
     <p>Diferença entre o total anual de chuva e o total do ano imediatamente anterior.</p>
 
     <section>
+      <div class="filters">
+        <label>
+          Mín. variação (mm)
+          <input id="min-filter" type="number" step="0.1" value="-700">
+        </label>
+        <label>
+          Máx. variação (mm)
+          <input id="max-filter" type="number" step="0.1" value="700">
+        </label>
+        <button id="apply-filter" type="button">Aplicar filtro</button>
+        <button id="negative-filter" class="secondary" type="button">Só negativas</button>
+        <button id="reset-filter" class="secondary" type="button">Mostrar tudo</button>
+      </div>
       <div id="chart"></div>
-      <p class="note">Tipo escolhido: linha temporal com bolhas divergentes, adequada para mostrar a direção e a intensidade da variação anual.</p>
+      <p class="note">Tipo escolhido: linha temporal com bolhas divergentes, adequada para mostrar a direção e a intensidade da variação anual. O filtro permite exibir apenas intervalos mínimos e máximos da variação.</p>
     </section>
   </main>
 
@@ -91,8 +140,7 @@
         };
       });
 
-    const anos = variacoes.map((item) => String(item.ano));
-    const valores = variacoes.map((item) => ({
+    const montarValores = (lista) => lista.map((item) => ({
       value: item.variacao,
       itemStyle: {
         color: item.variacao >= 0 ? "#00a878" : "#ff4d6d",
@@ -152,7 +200,7 @@
       },
       xAxis: {
         type: "category",
-        data: anos
+        data: variacoes.map((item) => String(item.ano))
       },
       yAxis: {
         type: "value",
@@ -179,7 +227,7 @@
         {
           name: "Variação anual",
           type: "line",
-          data: valores,
+          data: montarValores(variacoes),
           smooth: true,
           symbol: "circle",
           symbolSize: (value) => tamanhoBolha(value),
@@ -210,6 +258,44 @@
           }
         }
       ]
+    });
+
+    const minInput = document.getElementById("min-filter");
+    const maxInput = document.getElementById("max-filter");
+
+    function aplicarFiltro(minimo, maximo) {
+      const filtrados = variacoes.filter((item) => item.variacao >= minimo && item.variacao <= maximo);
+      chart.setOption({
+        xAxis: {
+          data: filtrados.map((item) => String(item.ano))
+        },
+        series: [
+          {
+            data: montarValores(filtrados)
+          }
+        ],
+        dataZoom: [
+          { start: 0, end: 100 },
+          { start: 0, end: 100 },
+          { startValue: minimo, endValue: maximo }
+        ]
+      });
+    }
+
+    document.getElementById("apply-filter").addEventListener("click", () => {
+      aplicarFiltro(Number(minInput.value), Number(maxInput.value));
+    });
+
+    document.getElementById("negative-filter").addEventListener("click", () => {
+      minInput.value = -700;
+      maxInput.value = 0;
+      aplicarFiltro(-700, 0);
+    });
+
+    document.getElementById("reset-filter").addEventListener("click", () => {
+      minInput.value = -700;
+      maxInput.value = 700;
+      aplicarFiltro(-700, 700);
     });
   </script>
 </body>
